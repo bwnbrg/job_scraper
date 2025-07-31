@@ -256,9 +256,10 @@ class JobScraperController:
         return combined_df
 
     def convert_jsonl_to_csv(self, jsonl_file, archived_jobs=None):
-        """Convert JSON Lines file to CSV and merge with archived jobs"""
+        """Convert processed JSON Lines file to CSV and merge with archived jobs"""
         
         try:
+            # Load the already-processed jobs (timestamps and ignore flags already added)            
             df = pd.read_json(jsonl_file, lines=True)
             
             if df.empty:
@@ -267,8 +268,7 @@ class JobScraperController:
             else:
                 current_jobs = df.copy()
 
-            # Mark ignored jobs in current jobs
-            current_jobs = self.mark_ignored_jobs(current_jobs)
+                self.logger.info(f"Loaded {len(current_jobs)} processed jobs from JSONL")
 
             # Combine current jobs with archived jobs
             final_df = self.combine_jobs_dataframes(current_jobs, archived_jobs)
@@ -315,6 +315,16 @@ class JobScraperController:
             
             self.logger.info(f"Job status: {active_count} active, {archived_count} archived, {ignored_count} ignored")
             
+            # Log timestamp statistics
+
+            if 'first_scraped_at' in final_df.columns:
+
+                current_timestamp = datetime.now().strftime("%Y-%m-%d")
+
+                new_today = final_df[final_df['first_scraped_at'].str.startswith(current_timestamp)].shape[0]
+
+                self.logger.info(f"Jobs first discovered today: {new_today}")
+
             return csv_file
             
         except Exception as e:
@@ -324,11 +334,8 @@ class JobScraperController:
     def save_current_jobs_as_previous(self, jsonl_file, archived_jobs=None):
         """Save current run as previous_jobs.jsonl for next run comparison"""
         try:
-            # Load current jobs
+            # Load the alreaddy processed current jobs (timestamps and ignore flags already added)
             current_jobs = pd.read_json(jsonl_file, lines=True)
-
-            # Mark ignored jobs in current jobs
-            current_jobs = self.mark_ignored_jobs(current_jobs)            
             
             # Combine with archived jobs for complete dataset
             combined_jobs = self.combine_jobs_dataframes(current_jobs, archived_jobs)
@@ -346,7 +353,7 @@ class JobScraperController:
         """Main method to run all scrapers"""
         self.logger.info("Starting job scraping automation")
         
-        # Load previous jobs for archiving logic
+        # Load previous jobs for archiving logic and timestamp tracking
         previous_jobs = self.load_previous_jobs()
         
         # Load companies
@@ -386,18 +393,26 @@ class JobScraperController:
         
         self.logger.info(f"Completed scraping. Successful: {successful_scrapes}/{len(companies_df)}")
         
-        # Load current jobs from the JSONL file for archiving comparison
+        # Load current jobs from the JSONL file and process them
         current_jobs = pd.DataFrame()
         if main_output_file.exists():
             try:
                 current_jobs = pd.read_json(main_output_file, lines=True)
+                
+                # Add timestamps to current jobs
+                current_jobs = self.add_scrape_timestamps(current_jobs, previous_jobs)
+
+                # Mark ignored jobs
+                current_jobs = self.mark_ignored_jobs(current_jobs)
+
+                self.logger.info(f"Processed {len(current_jobs)} jobs with timestamps and ignore flags")
             except Exception as e:
-                self.logger.error(f"Error loading current jobs for archiving: {e}")
+                self.logger.error(f"Error loading and processing current jobs: {e}")
         
         # Identify archived jobs
         archived_jobs = self.identify_archived_jobs(previous_jobs, current_jobs)
         
-        # Convert JSON to CSV and include archived jobs
+        # Convert processed JSONL to CSV and include archived jobs
         csv_output = self.convert_jsonl_to_csv(main_output_file, archived_jobs)
         
         # Save current run as previous_jobs.jsonl for next comparison
