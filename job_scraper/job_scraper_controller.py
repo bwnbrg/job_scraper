@@ -98,7 +98,7 @@ class JobScraperController:
             self.logger.debug("Current_jobs DataFrame is empty, skipping timestamp addition")
             return current_jobs
         
-        current_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        current_timestamp = datetime.now()
         
         # Remove the spider's scraped_at field since we're replacing it with proper tracking
         if 'scraped_at' in current_jobs.columns:
@@ -115,7 +115,7 @@ class JobScraperController:
             for _, job in previous_jobs.iterrows():
                 url = job.get('url')
                 first_scraped = job.get('first_scraped_at')
-                if url and first_scraped:
+                if url and pd.notna(first_scraped):
                     previous_first_scraped[url] = first_scraped
             
             # Update first_scraped_at for jobs that existed in previous runs
@@ -194,7 +194,7 @@ class JobScraperController:
         
         if not archived_jobs.empty:
             # Mark as archived with timestamp
-            archived_jobs['archived_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            archived_jobs['archived_at'] = datetime.now()
             
             self.logger.info(f"Found {len(archived_jobs)} jobs to archive")
             
@@ -314,9 +314,9 @@ class JobScraperController:
 
             if 'first_scraped_at' in final_df.columns:
 
-                current_timestamp = datetime.now().strftime("%Y-%m-%d")
+                current_date = datetime.now().date()
 
-                new_today = final_df[final_df['first_scraped_at'].str.startswith(current_timestamp)].shape[0]
+                new_today = (final_df['first_scraped_at'].dt.date == current_date).sum()
 
                 self.logger.info(f"Jobs first discovered today: {new_today}")
 
