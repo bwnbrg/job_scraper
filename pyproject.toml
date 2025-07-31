@@ -1,0 +1,30 @@
+[project]
+name = "job-scraper"
+version = "0.1.0"
+description = "Scraper for job postings"
+authors = [
+    {name = "Danny Holloway"}
+]
+readme = "README.md"
+requires-python = "^3.13.2"
+dependencies = [
+    "scrapy (>=2.12.0,<3.0.0)",
+    "python-dotenv (>=1.0.1,<2.0.0)",
+    "pandas (>=2.3.0,<3.0.0)",
+    "scrapy-splash (>=0.11.1,<0.12.0)",
+    "scrapy-selenium (>=0.0.7,<0.0.8)",
+    "chromium (>=0.0.0,<0.0.1)",
+    "chromedriver (>=2.24.1,<3.0.0)",
+    "webdriver-manager (>=4.0.2,<5.0.0)",
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.5"
+black = "^25.1.0"
+isort = "^6.0.1"
+
