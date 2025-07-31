@@ -91,7 +91,48 @@ class JobScraperController:
         except Exception as e:
             self.logger.error(f"Error loading previous jobs: {e}")
             return pd.DataFrame()
-    
+
+    def add_scrape_timestamps(self, current_jobs, previous_jobs):
+        """Add first_scraped_at and last_scraped_at timestamps to jobs, removing spider's scraped_at"""
+        if current_jobs.empty:
+            return current_jobs
+        
+        current_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Remove the spider's scraped_at field since we're replacing it with proper tracking
+        if 'scraped_at' in current_jobs.columns:
+            current_jobs = current_jobs.drop(columns=['scraped_at'])
+            self.logger.debug("Removed spider's scraped_at field - replacing with first/last scraped tracking")
+        
+        # Initialize the timestamp columns
+        current_jobs['first_scraped_at'] = current_timestamp
+        current_jobs['last_scraped_at'] = current_timestamp
+        
+        if not previous_jobs.empty and 'url' in previous_jobs.columns:
+            # Create a mapping of URL to first_scraped_at from previous jobs
+            previous_first_scraped = {}
+            for _, job in previous_jobs.iterrows():
+                url = job.get('url')
+                first_scraped = job.get('first_scraped_at')
+                if url and first_scraped:
+                    previous_first_scraped[url] = first_scraped
+            
+            # Update first_scraped_at for jobs that existed in previous runs
+            # (last_scraped_at stays as current timestamp for all jobs)
+            for idx, job in current_jobs.iterrows():
+                url = job.get('url')
+                if url in previous_first_scraped:
+                    current_jobs.at[idx, 'first_scraped_at'] = previous_first_scraped[url]
+                    self.logger.debug(f"Preserved first_scraped_at for existing job: {url}")
+        
+        # Log summary of new vs existing jobs
+        new_jobs = current_jobs[current_jobs['first_scraped_at'] == current_timestamp]
+        existing_jobs = current_jobs[current_jobs['first_scraped_at'] != current_timestamp]
+        
+        self.logger.info(f"Timestamp summary: {len(new_jobs)} new jobs, {len(existing_jobs)} existing jobs updated")
+        
+        return current_jobs
+
     def mark_ignored_jobs(self, jobs_df):
         """Mark jobs as ignored based on ignore URLs list"""
         if jobs_df.empty or not self.ignore_urls:
