@@ -95,6 +95,7 @@ class JobScraperController:
     def add_scrape_timestamps(self, current_jobs, previous_jobs):
         """Add first_scraped_at and last_scraped_at timestamps to jobs, removing spider's scraped_at"""
         if current_jobs.empty:
+            self.logger.debug("Current_jobs DataFrame is empty, skipping timestamp addition")
             return current_jobs
         
         current_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -255,20 +256,14 @@ class JobScraperController:
         
         return combined_df
 
-    def convert_jsonl_to_csv(self, jsonl_file, archived_jobs=None):
-        """Convert processed JSON Lines file to CSV and merge with archived jobs"""
+    def convert_output_to_csv(self, processed_jobs, jsonl_file, archived_jobs=None):
+        """Convert processed jobs dataframe to CSV and merge with archived jobs"""
         
         try:
             # Load the already-processed jobs (timestamps and ignore flags already added)            
-            df = pd.read_json(jsonl_file, lines=True)
-            
-            if df.empty:
-                self.logger.warning("No data found in JSONL file")
-                current_jobs = pd.DataFrame()
-            else:
-                current_jobs = df.copy()
+            current_jobs = processed_jobs.copy()
 
-                self.logger.info(f"Loaded {len(current_jobs)} processed jobs from JSONL")
+            self.logger.info(f"Converting {len(current_jobs)} processed jobs to CSV")
 
             # Combine current jobs with archived jobs
             final_df = self.combine_jobs_dataframes(current_jobs, archived_jobs)
@@ -328,14 +323,14 @@ class JobScraperController:
             return csv_file
             
         except Exception as e:
-            self.logger.error(f"Error converting JSONL to CSV: {e}")
+            self.logger.error(f"Error converting jobs to CSV: {e}")
             return None
     
-    def save_current_jobs_as_previous(self, jsonl_file, archived_jobs=None):
+    def save_current_jobs_as_previous(self, processed_jobs, archived_jobs=None):
         """Save current run as previous_jobs.jsonl for next run comparison"""
         try:
-            # Load the alreaddy processed current jobs (timestamps and ignore flags already added)
-            current_jobs = pd.read_json(jsonl_file, lines=True)
+            # Load the already processed current jobs (timestamps and ignore flags already added)
+            current_jobs = processed_jobs.copy()
             
             # Combine with archived jobs for complete dataset
             combined_jobs = self.combine_jobs_dataframes(current_jobs, archived_jobs)
@@ -401,7 +396,14 @@ class JobScraperController:
                 
                 # Add timestamps to current jobs
                 current_jobs = self.add_scrape_timestamps(current_jobs, previous_jobs)
-
+                
+                self.logger.info(f"Loaded {len(current_jobs)} jobs from JSONL")
+                # Debug: log columns to see what we actually have
+                if not current_jobs.empty:
+                    self.logger.info(f"JSONL columns: {list(current_jobs.columns)}")
+                else:
+                    self.logger.warning("JSONL file exists but contains no data")
+                
                 # Mark ignored jobs
                 current_jobs = self.mark_ignored_jobs(current_jobs)
 
@@ -412,11 +414,11 @@ class JobScraperController:
         # Identify archived jobs
         archived_jobs = self.identify_archived_jobs(previous_jobs, current_jobs)
         
-        # Convert processed JSONL to CSV and include archived jobs
-        csv_output = self.convert_jsonl_to_csv(main_output_file, archived_jobs)
+        # Convert processed Dataframe to CSV and include archived jobs
+        csv_output = self.convert_output_to_csv(current_jobs, main_output_file, archived_jobs)
         
         # Save current run as previous_jobs.jsonl for next comparison
-        self.save_current_jobs_as_previous(main_output_file, archived_jobs)
+        self.save_current_jobs_as_previous(current_jobs, archived_jobs)
         
         # Return summary of the run
         return {
