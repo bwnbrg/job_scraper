@@ -31,7 +31,7 @@ class GetroJobsSpider(scrapy.Spider):
         self.allowed_domains = [
             self.domain,
             f"jobs.{self.domain}",
-            "getro.com"
+            "getro.com",
             #add other domains for external platforms
             "workday.com",
             "bamboohr.com",
