@@ -20,7 +20,7 @@ from .lever_scraper import LeverJobsSpider
 class GetroJobsSpider(scrapy.Spider):
     name = "getro_jobs"
     
-    def __init__(self, company=None, domain=None, *args, **kwargs):
+    def __init__(self, company=None, domain=None, job_board_url=None, *args, **kwargs):
         super(GetroJobsSpider, self).__init__(*args, **kwargs)
         
         # Set default company if not provided
@@ -39,8 +39,14 @@ class GetroJobsSpider(scrapy.Spider):
             "lever.co"
         ]
         
-        # Getro job board URL pattern
-        self.start_urls = [f"https://jobs.{self.domain}/jobs"]
+        # Use provided job board URL or construct default
+        if job_board_url:
+            self.start_urls = [job_board_url]
+            self.logger.info(f"Using provided job board URL: {job_board_url}")
+        else:
+            # Getro job board URL pattern
+            self.start_urls = [f"https://jobs.{self.domain}/jobs"]
+            self.logger.info(f"Using constructed job board URL: {self.start_urls[0]}")
 
         # Initialize other spiders for delegation
         self.greenhouse_spider = GreenhouseJobsSpider(company=self.company, domain=self.domain)
