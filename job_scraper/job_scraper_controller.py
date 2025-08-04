@@ -215,7 +215,7 @@ class JobScraperController:
                 '-o', str(main_output_file),
                 '-a', f'company={company_data["company_slug"]}',
                 '-a', f'domain={company_data["domain"]}',
-                # '--logfile', str(self.output_dir / f'{company_data["company_name"]}_spider.log') #uncomment for individual logs
+                '--logfile', str(self.output_dir / f'{company_data["company_name"]}_spider.log') #uncomment for individual logs
             ]
 
             # pull in the whole job board URL if it exists

@@ -31,6 +31,7 @@ class GetroJobsSpider(scrapy.Spider):
         self.allowed_domains = [
             self.domain,
             f"jobs.{self.domain}",
+            job_board_url,
             "getro.com",
             #add other domains for external platforms
             "workday.com",
@@ -175,6 +176,8 @@ class GetroJobsSpider(scrapy.Spider):
                         department = indicator
                         break
                 
+        self.logger.debug(f"Title: {title}, Company: {secondary_company}, Employment Type: {employment_type}, Workplace Type: {workplace_type}, Location: {location}, Department: {department}")
+
         return {
             'getro_title': title,
             'secondary_company': secondary_company,
