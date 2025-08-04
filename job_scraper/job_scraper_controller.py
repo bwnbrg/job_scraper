@@ -10,6 +10,7 @@ from pathlib import Path
 import logging
 from datetime import datetime
 import time
+from urllib.parse import urlparse
 
 class JobScraperController:
     def __init__(self, companies_file, output_dir="output", ignore_urls_file=None):
@@ -39,7 +40,46 @@ class JobScraperController:
         
         # Load ignore URLs
         self.ignore_urls = self.load_ignore_urls()        
-    
+
+    def process_companies(self, domain):
+
+        """
+
+        Normalize domain to clean hostname format for scrapy spiders
+
+        Examples:
+        - "https://www.406ventures.com/" -> "406ventures.com"
+        - "www.example.com" -> "example.com"  
+        - "example.com" -> "example.com"
+
+        """
+
+        if not domain:
+
+            return ""
+
+        
+
+        # Remove protocol if present
+
+        if domain.startswith(('http://', 'https://')):
+            parsed = urlparse(domain)
+            clean_domain = parsed.netloc
+        else:
+            clean_domain = domain
+
+        # Remove any path components
+        clean_domain = clean_domain.split('/')[0]
+
+        # Remove www. prefix for consistency
+        if clean_domain.startswith('www.'):
+            clean_domain = clean_domain[4:]
+
+        self.logger.debug(f"Normalized domain '{domain}' -> '{clean_domain}'")
+
+        return clean_domain
+
+           
     def load_ignore_urls(self):
         """Load URLs to ignore from CSV file"""
         if not self.ignore_urls_file:
@@ -215,7 +255,7 @@ class JobScraperController:
                 '-o', str(main_output_file),
                 '-a', f'company={company_data["company_slug"]}',
                 '-a', f'domain={company_data["domain"]}',
-                '--logfile', str(self.output_dir / f'{company_data["company_name"]}_spider.log') #uncomment for individual logs
+                # '--logfile', str(self.output_dir / f'{company_data["company_name"]}_spider.log') #uncomment for individual logs
             ]
 
             # pull in the whole job board URL if it exists
@@ -361,6 +401,10 @@ class JobScraperController:
         # Load companies
         companies_df = self.load_companies()
         self.logger.info(f"Loaded {len(companies_df)} companies")
+
+        # Process companies
+        self.logger.info("Processing company data...")
+        companies_df['domain'] = companies_df['domain'].apply(self.process_companies)        
         
         # Create single output file with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
