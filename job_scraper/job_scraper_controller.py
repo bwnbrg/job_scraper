@@ -54,21 +54,25 @@ class JobScraperController:
 
         """
 
-        if not domain:
+        # Handle NaN/None values
+        if pd.isna(domain) or domain is None:
+            return None
 
-            return ""
-
+        # Ensure we're working with a string
+        domain = str(domain).strip()
         
+        # Return None for empty strings
+        if not domain:
+            return None        
 
         # Remove protocol if present
-
         if domain.startswith(('http://', 'https://')):
             parsed = urlparse(domain)
             clean_domain = parsed.netloc
         else:
             clean_domain = domain
 
-        # Remove any path components
+        # Remove any trailing slashes or path components
         clean_domain = clean_domain.split('/')[0]
 
         # Remove www. prefix for consistency
