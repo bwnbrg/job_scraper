@@ -258,12 +258,6 @@ class JobScraperController:
                 # '--logfile', str(self.output_dir / f'{company_data["company_name"]}_spider.log') #uncomment for individual logs
             ]
 
-            # pull in the whole job board URL if it exists
-            if 'additional_params' in company_data and company_data['additional_params']:
-                job_board_url = company_data['additional_params']
-                cmd.extend(['-a', f'job_board_url={job_board_url}'])
-                self.logger.debug(f"  Using job board URL: {job_board_url}")
-            
             self.logger.info(f"Running spider for {company_data['company_name']}: {' '.join(cmd)}")
             
             # Run the spider
