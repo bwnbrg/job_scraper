@@ -167,8 +167,8 @@ class GetroJobsSpider(scrapy.Spider):
                 for indicator in department_indicators:
                     if indicator in clean_text.lower():
                         department = indicator
-                        break
-                
+                        break                
+
         return {
             'getro_title': title,
             'secondary_company': secondary_company,
