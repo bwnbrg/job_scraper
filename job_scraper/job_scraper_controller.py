@@ -133,8 +133,12 @@ class JobScraperController:
             self.logger.info(f"Loaded {len(previous_jobs)} jobs from previous run: {previous_file}")
             return previous_jobs
         except Exception as e:
-            self.logger.error(f"Error loading previous jobs: {e}")
-            return pd.DataFrame()
+            self.logger.error(f"CRITICAL: Error loading previous jobs file: {e}")
+            self.logger.error("Cannot proceed without valid previous jobs data. Exiting.")
+            raise SystemExit(f"Failed to load previous jobs file: {previous_file}")
+            # Keeping the code below commented out in case we want to revert to non-fatal error handling in the future
+            # self.logger.error(f"Error loading previous jobs: {e}")
+            # return pd.DataFrame()
 
     def add_scrape_timestamps(self, current_jobs, previous_jobs):
         """Add first_scraped_at and last_scraped_at timestamps to jobs, removing spider's scraped_at"""
