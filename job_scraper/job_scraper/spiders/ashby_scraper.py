@@ -13,8 +13,8 @@ class AshbyJobsSpider(scrapy.Spider):
         super(AshbyJobsSpider, self).__init__(*args, **kwargs)
 
         # Set default values if not provided
-        self.company = company or "posh"
-        self.domain = domain or "posh.vip"
+        self.company = company or "peppr"
+        self.domain = domain or "peppr.com"
         
         # Set dynamic domains and URLs
         self.allowed_domains = [
@@ -120,3 +120,5 @@ class AshbyJobsSpider(scrapy.Spider):
 
         finally:
             driver.quit()
+
+#poetry run scrapy crawl ashby_jobs -o jobs.json --logfile debug.log
