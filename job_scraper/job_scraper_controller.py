@@ -35,6 +35,7 @@ class JobScraperController:
             'lever': 'lever_jobs',
             'greenhouse': 'greenhouse_jobs',
             'getro': 'getro_jobs',
+            'ashby': 'ashby_jobs',
             # Add more as we build them
         }
         
