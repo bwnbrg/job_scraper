@@ -1,6 +1,7 @@
 import scrapy
-from scrapy_playwright.page import PageMethod
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -25,14 +26,17 @@ class AshbyJobsSpider(scrapy.Spider):
         
         self.start_urls = [f"https://jobs.ashbyhq.com/{self.company}"]
         
-        self.logger.info(f"Spider initialized for company: {self.company}, domain: {self.domain}")
+        self.logger.info(f"Ashby spider initialized for company: {self.company}")
 
         
 
     def parse(self, response):
         options = webdriver.ChromeOptions()
         options.add_argument('--headless') # Run in headless mode
-        driver = webdriver.Chrome(options=options)
+        driver = webdriver.Chrome(
+            service=Service(ChromeDriverManager().install()),
+            options=options
+        )
 
         # Navigate to the React website
 
