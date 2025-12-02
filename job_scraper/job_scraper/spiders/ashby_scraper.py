@@ -5,6 +5,8 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from ..items import JobItem
+from datetime import datetime
 
 class AshbyJobsSpider(scrapy.Spider):
     name = "ashby_jobs"
@@ -99,7 +101,7 @@ class AshbyJobsSpider(scrapy.Spider):
 
             location = get_section_text("Location")
             employment_type = get_section_text("Employment Type")
-            location_type = get_section_text("Location Type")
+            workplace_type = get_section_text("Location Type")
             department = get_section_text("Department")
             compensation = get_section_text("Compensation")
 
@@ -110,16 +112,21 @@ class AshbyJobsSpider(scrapy.Spider):
             except:
                 description = None
 
-            yield {
-                "title": title,
-                "location": location,
-                "employment_type": employment_type,
-                "location_type": location_type,
-                "department": department,
-                "compensation": compensation,
-                "description": description,
-                "url": response.url
-            }
+            # Yield the job data
+            yield JobItem(
+                title = title,
+                employment_type = employment_type,
+                workplace_type = workplace_type,
+                location = location,
+                department = department,
+                url = response.url,
+                description = description,
+                # requirements = requirements,
+                # "compensation": compensation,
+                company = self.company,
+                source = 'ashby',
+                scraped_at = datetime.now().isoformat()
+            )
 
         except Exception as e:
             self.logger.error(f"Failed to parse job details: {e}")
