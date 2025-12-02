@@ -1,0 +1,56 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Job {
+  id              String    @id @default(uuid())
+
+  // Job details
+  title           String
+  employmentType  String?   @map("employment_type")
+  workplaceType   String?   @map("workplace_type")
+  location        String?
+  department      String?
+  url             String    @unique  // Used as unique identifier
+  description     String?   @db.Text
+  requirements    String?   @db.Text
+  company         String
+  source          String    // e.g., 'lever', 'greenhouse', 'getro / lever'
+
+  // Tracking fields
+  firstScrapedAt  DateTime  @map("first_scraped_at")
+  lastScrapedAt   DateTime  @map("last_scraped_at")
+  archivedAt      DateTime? @map("archived_at")
+  ignored         String?   // 'checked' when manually ignored
+
+  // Timestamps
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@index([url])
+  @@index([company])
+  @@index([archivedAt])
+  @@index([ignored])
+  @@map("jobs")
+}
+
+model Company {
+  id                  String   @id @default(uuid())
+  companyName         String   @map("company_name")
+  companySlug         String   @unique @map("company_slug")
+  domain              String
+  careerPageVendor    String   @map("career_page_vendor")  // 'lever', 'greenhouse', 'getro'
+
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("companies")
+}
