@@ -52,18 +52,20 @@ class AshbyJobsSpider(scrapy.Spider):
             )
 
             # Find all <a> tags inside the job list container
-            job_list = driver.find_element(By.CLASS_NAME, "ashby-job-posting-brief-list")
-            job_links = job_list.find_elements(By.TAG_NAME, "a")
+            job_lists = driver.find_elements(By.CLASS_NAME, "ashby-job-posting-brief-list")
 
-            for link in job_links:
-                href = link.get_attribute("href")
-                full_url = href if href.startswith("http") else f"https://jobs.ashbyhq.com{href}"
-                self.logger.info(f"Found job: {full_url}")
-                
-                yield scrapy.Request(
-                    url=full_url,
-                    callback=self.parse_job_details
-                )
+            for job_list in job_lists:
+                job_links = job_list.find_elements(By.TAG_NAME, "a")
+
+                for link in job_links:
+                    href = link.get_attribute("href")
+                    full_url = href if href.startswith("http") else f"https://jobs.ashbyhq.com{href}"
+                    self.logger.info(f"Found job: {full_url}")
+                    
+                    yield scrapy.Request(
+                        url=full_url,
+                        callback=self.parse_job_details
+                    )
 
         finally:
             driver.quit()
