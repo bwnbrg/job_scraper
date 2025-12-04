@@ -45,3 +45,7 @@ poetry.lock
 .env
 
 job_scraper/jobs.json
+
+# Output files
+job_scraper/output/*.csv
+job_scraper/output/*.jsonl
