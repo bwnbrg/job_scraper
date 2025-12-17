@@ -36,6 +36,7 @@ class JobScraperController:
             'greenhouse': 'greenhouse_jobs',
             'getro': 'getro_jobs',
             'ashby': 'ashby_jobs',
+            'jazzHR': 'jazzHR_jobs'
             # Add more as we build them
         }
         

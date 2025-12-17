@@ -6,6 +6,8 @@ import re
 from ..items import JobItem
 from .greenhouse_scraper import GreenhouseJobsSpider
 from .lever_scraper import LeverJobsSpider
+from .ashby_scraper import AshbyJobsSpider
+from .jazzHR_scraper import JazzHRJobsSpider
 
 #When adding a new scraper, make sure to:
 # 1. Import it at the top of this file
@@ -36,7 +38,9 @@ class GetroJobsSpider(scrapy.Spider):
             "workday.com",
             "bamboohr.com",
             "greenhouse.io",
-            "lever.co"
+            "lever.co",
+            "ashbyhq.com",
+            "applytojob.com"
         ]
         
         # Getro job board URL pattern
@@ -45,6 +49,8 @@ class GetroJobsSpider(scrapy.Spider):
         # Initialize other spiders for delegation
         self.greenhouse_spider = GreenhouseJobsSpider(company=self.company, domain=self.domain)
         self.lever_spider = LeverJobsSpider(company=self.company, domain=self.domain)
+        self.ashby_spider = AshbyJobsSpider(company=self.company, domain=self.domain)
+        self.jazzHR_spider = JazzHRJobsSpider(company=self.company, domain=self.domain)
         
         self.logger.info(f"Getro spider initialized for company: {self.company}")
     
@@ -83,7 +89,7 @@ class GetroJobsSpider(scrapy.Spider):
             # Determine the source platform from the apply URL
             source_platform = self.detect_source_platform(apply_url)
             
-            if source_platform in ['greenhouse', 'lever']:
+            if source_platform in ['greenhouse', 'lever', 'ashby', 'jazzHR']:
                 self.logger.info(f"Following {source_platform} apply link: {apply_url}")
                 
                 # Pass along the Getro data to the secondary parser
@@ -115,6 +121,10 @@ class GetroJobsSpider(scrapy.Spider):
             return 'workday'
         elif 'bamboohr.com' in url:
             return 'bamboohr'
+        elif 'ashbyhq.com' in url:
+            return 'ashby'
+        elif 'applytojob.com' in url:
+            return 'jazzHR'
         else:
             return 'unknown'
     
@@ -191,6 +201,10 @@ class GetroJobsSpider(scrapy.Spider):
             yield from self.parse_greenhouse_job(response, getro_data, getro_url)
         elif source_platform == 'lever':
             yield from self.parse_lever_job(response, getro_data, getro_url)
+        elif source_platform == 'ashby':
+            yield from self.parse_ashby_job(response, getro_data, getro_url)
+        elif source_platform == 'jazzHR':
+            yield from self.parse_jazzHR_job(response, getro_data, getro_url)
     
     def parse_greenhouse_job(self, response, getro_data, getro_url):
         """Parse Greenhouse job details using the existing Greenhouse spider"""
@@ -225,6 +239,45 @@ class GetroJobsSpider(scrapy.Spider):
             secondary_company = url_match_pattern.search(response.url).group(1)
             self.logger.debug(f"extracted secondary company: {secondary_company}")
             job_item['source'] = 'getro / lever'
+            job_item['company'] = f"{self.company} / {secondary_company}"
+            yield job_item
+
+    def parse_ashby_job(self, response, getro_data, getro_url):
+        """Parse Ashby job details using the existing Ashby spider"""
+        self.logger.debug("Delegating to Ashby spider")
+
+        url_match_pattern = re.compile(r'jobs\.ashbyhq\.com\/([^\/]+)')
+        ashby_job_url_confirmation = url_match_pattern.search(response.url)
+        if ashby_job_url_confirmation is None:
+            self.logger.warning(f"URL {response.url} doesn't appear to be a job details page, skipping")
+            return
+        
+        # Call the shby spider's parse_job_details method
+        for job_item in self.ashby_spider.parse_job_details(response):
+            # Only modify source and company
+            secondary_company = url_match_pattern.search(response.url).group(1)
+            self.logger.debug(f"extracted secondary company: {secondary_company}")
+            job_item['source'] = 'getro / ashby'
+            job_item['company'] = f"{self.company} / {secondary_company}"
+            yield job_item
+
+    def parse_jazzHR_job(self, response, getro_data, getro_url):
+        """Parse jazzHR job details using the existing jazzHR spider"""
+        self.logger.debug("Delegating to jazzHR spider")
+
+        url_match_pattern = re.compile(r'https?:\/\/([^\.]+)\.applytojob\.com\/apply')
+
+        jazzHR_job_url_confirmation = url_match_pattern.search(response.url)
+        if jazzHR_job_url_confirmation is None:
+            self.logger.warning(f"URL {response.url} doesn't appear to be a job details page, skipping")
+            return
+        
+        # Call the jazzHR spider's parse_job_details method
+        for job_item in self.jazzHR_spider.parse_job_details(response):
+            # Only modify source and company
+            secondary_company = url_match_pattern.search(response.url).group(1)
+            self.logger.debug(f"extracted secondary company: {secondary_company}")
+            job_item['source'] = 'getro / jazzHR'
             job_item['company'] = f"{self.company} / {secondary_company}"
             yield job_item
 
